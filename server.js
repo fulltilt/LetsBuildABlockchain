@@ -1,6 +1,9 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 
+let args = process.argv.slice(2);
+let port = args[0];
+
 // create express app
 var app = express();
 
@@ -34,10 +37,10 @@ app.get('/', function(req, res){
 require('./app/routes/note.routes.js')(app);
 
 
-require('./app/haseeb.js')(app);
+require('./app/gossip.js')(app);
 
 
 // listen for requests
-app.listen(3000, function(){
-    console.log("Server is listening on port 3000");
+app.listen(port, function(){
+    console.log(`Server is listening on port ${port}`);
 });

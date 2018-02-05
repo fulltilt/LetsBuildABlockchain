@@ -1,19 +1,25 @@
-let crypto = require('crypto');
+let crypto = require('crypto'),
+		PKI = require('./pki');
 
 
-function Block(previousBlock, message) {
-	this.NUM_ZEROES = 4;
+function Block(previousBlock, transaction) {
+	this.NUM_ZEROES = 2;
 	this.zeroesString = '0'.repeat(this.NUM_ZEROES);
 	this.ownHash = null;
 	this.previousBlockHash = null;
+	this.transaction = transaction;
 
-	this.message = message;
 	if (previousBlock) {
 		this.previousBlockHash = previousBlock.ownHash;
 	}
 
 	this.mineBlock();
 };
+
+Block.createGenesisBlock = function(publicKey, privateKey) {
+	let genesisTransaction = new Transaction(null, publicKey, 500000, privateKey);
+	return new Block(null, genesisTransaction);
+}
 
 Block.prototype = {
 	mineBlock: function() {
@@ -22,7 +28,7 @@ Block.prototype = {
 	},
 
 	isValid: function() {
-		this.isValidNonce(this.nonce);
+		this.isValidNonce(this.nonce) && this.transaction.isValidSignature();
 	},
 
 	hash: function(contents) {
@@ -51,34 +57,61 @@ Block.prototype = {
 	},
 
 	fullBlock: function(nonce) {
-		return (this.previousBlockHash) ? [this.message, this.previousBlockHash, nonce].join('')
-																		: [this.message, nonce].join('');
+		return (this.previousBlockHash) ? [this.transaction.toString(), this.previousBlockHash, nonce].join('')
+																		: [this.transaction.toString(), nonce].join('');
 	},
 
 	toString: function() {
-		console.log(`-----------------------------------------------------------------------------------
+		return `-----------------------------------------------------------------------------------
 Previous hash: ${this.previousBlockHash}
-Messsage: ${this.message}
+Message: ${this.transaction}
 Nonce: ${this.nonce}
 Own hash: ${this.ownHash}
 -----------------------------------------------------------------------------------
                                         |
                                         |
-                                        ↓`);
+                                        ↓`;
 	}
 };
 
 
-function BlockChain(message) {
+function Transaction(from, to, amount, privateKey) {
+	this.from = from;
+	this.to = to;
+	this.amount = amount;
+	this.signature = PKI.sign(this.message(), privateKey);
+};
+
+Transaction.prototype = {
+	isValidSignature: function() {
+		return isGenesisTransaction() || PKI.isValidSignature(message(), this.signature, this.from);
+	},
+
+	isGenesisTransaction: function() {
+		return this.from === null;
+	},
+
+	message: function() {
+		return crypto.createHmac('sha256', [this.from, this.to, this.amount].join(''))
+							 	 .digest('hex');
+	},
+
+	toString: function() {
+		return this.message();
+	}
+}
+
+
+function BlockChain(originatorPublicKey, originatorPrivateKey) {
 	this.blocks = [];
-	this.blocks.push(new Block(null, message));	// genesis block
+	this.blocks.push(Block.createGenesisBlock(originatorPublicKey, originatorPrivateKey));
 };
 
 BlockChain.prototype = {
-	addToChain: function(message) {
+	addToChain: function(transaction) {
 		let lastBlock = this.blocks[this.blocks.length - 1];
-		this.blocks.push(new Block(lastBlock, message));
-		this.blocks[this.blocks.length - 1].toString();
+		this.blocks.push(new Block(lastBlock, transaction));
+		// this.blocks[this.blocks.length - 1].toString();
 	},
 
 	isValid: function() {
@@ -95,18 +128,56 @@ BlockChain.prototype = {
 			}
 		}
 
+		// make sure nobody's balance is below zero
+		if (!this.allSpendsValid()) {
+			return false;
+		}
+
 		return true;
 	},
 
+	allSpendsValid: function() {
+		let balances = this.computeBalances(),
+				keys = Object.keys(balances);
+		for (let i = 0; i < keys.length; ++i) {
+			if (balances[keys[i]] < 0) {
+				return false;
+			}
+		}
+		return true;
+	},
+
+	computeBalances: function() {
+		let genesisTransaction = this.blocks[0],
+				balances = {};
+
+		balances[genesisTransaction.transaction.to] = genesisTransaction.transaction.amount;
+			// genesisTransaction.transaction.to: genesisTransaction.transaction.amount
+		balances.default = 0;	// new people automatically have a balance of 0
+		
+		for (let i = 1; i < this.blocks.length; ++i) {	// ignore genesis block
+			let from = this.blocks[i].transaction.from,
+					to = this.blocks[i].transaction.to,
+					amount = this.blocks[i].transaction.amount;
+
+			balances[from] -= amount;
+			balances[to] += amount;
+		}
+
+		return balances;
+	},
+
+	length: function() {
+		return this.blocks.length;
+	},
+
 	toString: function() {
-		console.log(this.blocks);
+		return this.blocks.join('\n');
 	}
 };
 
-
-let b = new BlockChain('Genesis Block');
-b.addToChain('Cinderella');
-b.addToChain('The Three Stooges');
-b.addToChain('Snow White');
-console.log('Is block chain valid:', b.isValid());
-b.toString();
+module.exports = {
+	Block,
+	Transaction,
+	BlockChain
+};

@@ -111,7 +111,6 @@ BlockChain.prototype = {
 	addToChain: function(transaction) {
 		let lastBlock = this.blocks[this.blocks.length - 1];
 		this.blocks.push(new Block(lastBlock, transaction));
-		// this.blocks[this.blocks.length - 1].toString();
 	},
 
 	isValid: function() {

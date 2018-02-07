@@ -5,6 +5,7 @@ module.exports = function(MY_PORT, PEERS, BLOCKCHAIN, publicKey) {
 		request = require('request'),
 		querystring = require('querystring'),
 		crypto = require('crypto'),
+		block = require('./block'),
 		module = {};
 
 	// note: synchronous
@@ -24,6 +25,7 @@ module.exports = function(MY_PORT, PEERS, BLOCKCHAIN, publicKey) {
 		}
 		let balances = BLOCKCHAIN.computeBalances(),
 				result = '';
+
 		for (let publicKey in balances) {
 			result += `	${module.humanReadableName(publicKey)} currently has ${balances[publicKey]}\n`
 		}
@@ -54,7 +56,7 @@ Balances:\n${module.readableBalances()}
 		let gossipResponse = module.clientGossip(port, PEERS, BLOCKCHAIN);
 		gossipResponse
 			.then(
-				res => {console.log('gossipWithPeer res:', typeof res.blockchain, res)
+				res => {
 					let theirPeers = res['peers'],
 							theirBlockchain = res['blockchain'];
 
@@ -71,10 +73,11 @@ Balances:\n${module.readableBalances()}
 		if (!theirBlockchain.blocks || (BLOCKCHAIN !== null && theirBlockchain.blocks.length <= BLOCKCHAIN.blocks.length)) {
 			return;
 		}
-		BLOCKCHAIN = theirBlockchain;
+		BLOCKCHAIN = new block.BlockChain(null, null);	// workaround as theirBlockchain isn't serialized
+		BLOCKCHAIN.blocks = theirBlockchain.blocks;
 	}
 
-	module.updatePeers = function(theirPeers) {console.log('udpatePeers:',theirPeers)
+	module.updatePeers = function(theirPeers) {
 		for (let elem of Array.from(theirPeers)) {
 			PEERS.add(elem);
 		}

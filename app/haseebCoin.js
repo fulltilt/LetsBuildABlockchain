@@ -40,7 +40,7 @@ module.exports = function(app) {
 
 
 
-	app.post('/gossip', function(req, res) {console.log('/gossip', req.body)
+	app.post('/gossip', function(req, res) {
 		let theirBlockchain = req.body.blockchain,
 				theirPeers = req.body.peers;
 		helpers.updateBlockchain(theirBlockchain);

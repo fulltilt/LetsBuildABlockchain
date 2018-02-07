@@ -17,7 +17,7 @@ function Block(previousBlock, transaction) {
 };
 
 Block.createGenesisBlock = function(publicKey, privateKey) {
-	let genesisTransaction = new Transaction(null, publicKey, 500000, privateKey);
+	let genesisTransaction = new Transaction(null, publicKey, 500000, privateKey);	// since it's the genesis block, there is no from and also give 500000
 	return new Block(null, genesisTransaction);
 }
 
@@ -84,7 +84,7 @@ function Transaction(from, to, amount, privateKey) {
 
 Transaction.prototype = {
 	isValidSignature: function() {
-		return isGenesisTransaction() || PKI.isValidSignature(message(), this.signature, this.from);
+		return isGenesisTransaction() || PKI.isValidSignature(this.message(), this.signature, this.from);
 	},
 
 	isGenesisTransaction: function() {
@@ -103,6 +103,10 @@ Transaction.prototype = {
 
 
 function BlockChain(originatorPublicKey, originatorPrivateKey) {
+	if (!originatorPrivateKey || !originatorPublicKey) {
+		return;
+	}
+
 	this.blocks = [];
 	this.blocks.push(Block.createGenesisBlock(originatorPublicKey, originatorPrivateKey));
 };
@@ -152,7 +156,7 @@ BlockChain.prototype = {
 
 		balances[genesisTransaction.transaction.to] = genesisTransaction.transaction.amount;
 			// genesisTransaction.transaction.to: genesisTransaction.transaction.amount
-		balances.default = 0;	// new people automatically have a balance of 0
+		// balances.default = 0;	// new people automatically have a balance of 0
 		
 		for (let i = 1; i < this.blocks.length; ++i) {	// ignore genesis block
 			let from = this.blocks[i].transaction.from,

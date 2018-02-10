@@ -43,6 +43,7 @@ module.exports = function(app) {
 	app.post('/gossip', function(req, res) {
 		let theirBlockchain = req.body.blockchain,
 				theirPeers = req.body.peers;
+
 		helpers.updateBlockchain(theirBlockchain);
 		helpers.updatePeers(theirPeers);
 		res.send({
@@ -51,16 +52,11 @@ module.exports = function(app) {
 		});
 	});
 
-	app.post('/send_money', function(req, res) {
-		let to = helpers.getPublicKey(req.query.to),
-				amount = parseInt(req.query.amount, 10);
-
-		if (BALANCES[from] < amount) {
-			throw new Error('Insufficient Funds');
-		}
+	app.post('/send_money', async function(req, res) {
+		let amount = parseInt(req.query.amount, 10),
+				to = await helpers.getPublicKey(req.query.to);
 
 		BLOCKCHAIN.addToChain(new block.Transaction(publicKey, to, amount, privateKey));
-
 		console.log('OK. Block mined!');
 	});
 

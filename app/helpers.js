@@ -52,8 +52,8 @@ Balances:\n${module.readableBalances()}
 ---------------------------------------------`);
 	}
 
-	module.gossipWithPeer = function(port) {
-		let gossipResponse = module.clientGossip(port, PEERS, BLOCKCHAIN);
+	module.gossipWithPeer = function(peerPort) {
+		let gossipResponse = module.clientGossip(peerPort, PEERS, BLOCKCHAIN);
 		gossipResponse
 			.then(
 				res => {
@@ -64,7 +64,7 @@ Balances:\n${module.readableBalances()}
 					module.updateBlockchain(theirBlockchain);
 				},
 				err => {
-					PEERS.delete(port);
+					PEERS.delete(peerPort);
 				}
 			);
 	}
@@ -83,14 +83,14 @@ Balances:\n${module.readableBalances()}
 		}
 	}
 
-	module.clientGossip = function(port, PEERS, BLOCKCHAIN) {
+	module.clientGossip = function(peerPort, PEERS, BLOCKCHAIN) {
 		let postData = querystring.stringify({
 			'peers': PEERS,
 			'blockchain': BLOCKCHAIN
 		});
 
 		let options = {
-			url: `http://localhost:${port}/gossip`,
+			url: `http://localhost:${peerPort}/gossip`,
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded'
 			},
@@ -121,7 +121,7 @@ Balances:\n${module.readableBalances()}
 				if (err) {
 					reject(err);
 				} else {
-					resolve(JSON.parse(body));
+					resolve(body);
 				}
 			});
 		});

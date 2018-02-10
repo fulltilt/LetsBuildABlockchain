@@ -76,7 +76,7 @@ Own hash: ${this.ownHash}
 
 
 function Transaction(from, to, amount, privateKey) {
-	this.from = from;
+	this.from = from;	// public key
 	this.to = to;
 	this.amount = amount;
 	this.signature = PKI.sign(this.message(), privateKey);
@@ -142,6 +142,7 @@ BlockChain.prototype = {
 	allSpendsValid: function() {
 		let balances = this.computeBalances(),
 				keys = Object.keys(balances);
+console.log('allSpendsValid', balances)
 		for (let i = 0; i < keys.length; ++i) {
 			if (balances[keys[i]] < 0) {
 				return false;
@@ -155,15 +156,15 @@ BlockChain.prototype = {
 				balances = {};
 
 		balances[genesisTransaction.transaction.to] = genesisTransaction.transaction.amount;
-			// genesisTransaction.transaction.to: genesisTransaction.transaction.amount
-		// balances.default = 0;	// new people automatically have a balance of 0
-		
+
 		for (let i = 1; i < this.blocks.length; ++i) {	// ignore genesis block
 			let from = this.blocks[i].transaction.from,
 					to = this.blocks[i].transaction.to,
 					amount = this.blocks[i].transaction.amount;
 
 			balances[from] -= amount;
+
+			balances[to] = balances[to] || 0;	// new people automatically have a balance of 0
 			balances[to] += amount;
 		}
 
